@@ -3,13 +3,8 @@ package com.rajasharan.layout;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
-import android.graphics.PointF;
-import android.graphics.Rect;
-import android.graphics.RectF;
 import android.support.v7.widget.LinearLayoutManager;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -21,12 +16,13 @@ import java.util.List;
  */
 public class MenubarLayout extends ViewGroup {
     private static final String TAG = "MenubarLayout";
+    private static final int CURRENT_CHILD_INDEX = 2;
 
-    private int mCurrentViewIndex;
     private MenubarView mMenuBarView;
     private MenuSelectorView mMenuSelectorView;
     private int mHeightDivideBy;
     private List<String> mMenuNames;
+    private List<View> mChildren;
 
     public MenubarLayout(Context context) {
         this(context, null);
@@ -42,9 +38,9 @@ public class MenubarLayout extends ViewGroup {
     }
 
     private void init(Context context) {
-        mCurrentViewIndex = -1;
         mHeightDivideBy = 20;
         mMenuNames = new ArrayList<>();
+        mChildren = new ArrayList<>();
 
     }
 
@@ -62,6 +58,7 @@ public class MenubarLayout extends ViewGroup {
             mMenuNames.add("Item - " + i);
         }
 
+        saveAndRemoveAllViews();
 
         mMenuBarView = new MenubarView(getContext(), false, "MAIN LOgO HERE");
         mMenuSelectorView = new MenuSelectorView(getContext(), false);
@@ -70,18 +67,23 @@ public class MenubarLayout extends ViewGroup {
 
         addView(mMenuBarView, 0);
         addView(mMenuSelectorView, 1);
+        //addView(mChildren.get(0), CURRENT_CHILD_INDEX);
 
         //Log.d(TAG, "onFininshInflate");
     }
 
-    private boolean measureCurrentView(int widthSpec, int heightSpec) {
-        if (mCurrentViewIndex == -1) {
-            return false;
+    private void saveAndRemoveAllViews() {
+        mChildren.clear();
+        for (int i=0; i<getChildCount(); i++) {
+            mChildren.add(getChildAt(i));
         }
+        removeAllViews();
+    }
 
-        View view = getChildAt(mCurrentViewIndex);
+    private boolean measureCurrentView(int widthSpec, int heightSpec) {
+        View view = getChildAt(CURRENT_CHILD_INDEX);
         LayoutParams lp = getLayoutParams(view);
-        if (lp.mName == null) {
+        if (lp == null || lp.mName == null) {
             return false;
         }
 
@@ -108,17 +110,8 @@ public class MenubarLayout extends ViewGroup {
 
         int viewWidthSpec = widthSpec;
         int viewHeightSpec = MeasureSpec.makeMeasureSpec(height - height/mHeightDivideBy, MeasureSpec.EXACTLY);
-        if (!measureCurrentView(viewWidthSpec, viewHeightSpec)) {
-            for (int i = 0; i < getChildCount() && i != mCurrentViewIndex; i++) {
-                View view = getChildAt(i);
-                LayoutParams lp = getLayoutParams(view);
-                if (lp.mName != null) {
-                    mCurrentViewIndex = i;
-                    view.measure(viewWidthSpec, viewHeightSpec);
-                    break;
-                }
-            }
-        }
+
+        measureCurrentView(viewWidthSpec, viewHeightSpec);
 
         //Log.d(TAG, String.format("onMeasure: mMenuBarView (%d, %d)", width, height/mHeightDivideBy));
         //Log.d(TAG, String.format("onMeasure: mMenuSelectorView (%d, %d)", width, height/mHeightDivideBy));
@@ -126,13 +119,9 @@ public class MenubarLayout extends ViewGroup {
     }
 
     private boolean layoutCurrentView(int l, int t, int r, int b) {
-        if (mCurrentViewIndex == -1) {
-            return false;
-        }
-
-        View view = getChildAt(mCurrentViewIndex);
+        View view = getChildAt(CURRENT_CHILD_INDEX);
         LayoutParams lp = getLayoutParams(view);
-        if (lp.mName == null) {
+        if (lp == null || lp.mName == null) {
             return false;
         }
 
@@ -156,21 +145,11 @@ public class MenubarLayout extends ViewGroup {
         mMenuBarView.layout(l, t, r, offset);
         mMenuSelectorView.layout(l, t+offset, r, offset2);
 
-        if (!layoutCurrentView(l, viewTop, r, b)) {
-            for (int i = 0; i < getChildCount() && i != mCurrentViewIndex; i++) {
-                View view = getChildAt(i);
-                LayoutParams lp = getLayoutParams(view);
-                if (lp.mName != null) {
-                    mCurrentViewIndex = i;
-                    view.layout(l, viewTop, r, b);
-                    break;
-                }
-            }
-        }
+        layoutCurrentView(l, viewTop, r, b);
 
-        Log.d(TAG, String.format("onLayout: mMenuBarView:(%d, %d, %d, %d)", l, t, r, offset));
-        Log.d(TAG, String.format("onLayout: mMenuSelectorView:(%d, %d, %d, %d)", l, t+offset, r, offset2));
-        Log.d(TAG, String.format("onLayout: mCurrentView:(%d, %d, %d, %d)", l, viewTop, r, b));
+        //Log.d(TAG, String.format("onLayout: mMenuBarView:(%d, %d, %d, %d)", l, t, r, offset));
+        //Log.d(TAG, String.format("onLayout: mMenuSelectorView:(%d, %d, %d, %d)", l, t+offset, r, offset2));
+        //Log.d(TAG, String.format("onLayout: mCurrentView:(%d, %d, %d, %d)", l, viewTop, r, b));
     }
 
     /*package*/ void toggleMenuPress() {
@@ -182,13 +161,20 @@ public class MenubarLayout extends ViewGroup {
     }
 
     /*package*/ void changeCurrentView(int index) {
-        if (mCurrentViewIndex == index) return;
-        mCurrentViewIndex = index;
-        //invalidate(mMenuSelectorView.getLeft(), mMenuSelectorView.getBottom(), getRight(), getBottom());
-        invalidate();
+        View newView = mChildren.get(index);
+        View currView = getChildAt(CURRENT_CHILD_INDEX);
+        if (newView == currView) {
+            return;
+        }
+
+        if (currView != null) {
+            removeViewAt(CURRENT_CHILD_INDEX);
+        }
+        addView(newView, CURRENT_CHILD_INDEX);
     }
 
     private LayoutParams getLayoutParams(View view) {
+        if (view == null) return null;
         return (LayoutParams) view.getLayoutParams();
     }
 
