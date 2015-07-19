@@ -9,6 +9,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * Created by rajasharan on 7/8/15.
@@ -90,5 +91,15 @@ import android.view.View;
         int stop = start + h;
         canvas.drawLine(start, start, stop, stop, mPaint);
         canvas.drawLine(start, stop, stop, start, mPaint);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        Log.d(TAG, "mMenubarView onTouchEvent");
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            MenubarLayout parent = (MenubarLayout) getParent();
+            parent.toggleMenuPress();
+        }
+        return true;
     }
 }

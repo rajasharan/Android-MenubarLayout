@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.support.v7.widget.LinearLayoutManager;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -57,8 +58,18 @@ public class MenubarLayout extends ViewGroup {
             mMenuNames.add(lp.mName);
         }
 
+        for (int i=1; i<100; i++) {
+            mMenuNames.add("Item - " + i);
+        }
+
+
         mMenuBarView = new MenubarView(getContext(), false, "MAIN LOgO HERE");
-        mMenuSelectorView = new MenuSelectorView(getContext(), false, mMenuNames);
+        mMenuSelectorView = new MenuSelectorView(getContext(), false);
+        mMenuSelectorView.setAdapter(new MenubarAdapter(mMenuNames, 5, this));
+        mMenuSelectorView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+
+        addView(mMenuBarView, 0);
+        addView(mMenuSelectorView, 1);
 
         //Log.d(TAG, "onFininshInflate");
     }
@@ -131,8 +142,8 @@ public class MenubarLayout extends ViewGroup {
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        mMenuBarView.draw(canvas);
-        mMenuSelectorView.draw(canvas);
+        //mMenuBarView.draw(canvas);
+        //mMenuSelectorView.draw(canvas);
         super.dispatchDraw(canvas);
     }
 
@@ -157,39 +168,24 @@ public class MenubarLayout extends ViewGroup {
             }
         }
 
-        //Log.d(TAG, String.format("onLayout: mMenuBarView:(%d, %d, %d, %d)", l, t, r, offset));
-        //Log.d(TAG, String.format("onLayout: mMenuSelectorView:(%d, %d, %d, %d)", l, t+offset, r, offset2));
-        //Log.d(TAG, String.format("onLayout: mCurrentView:(%d, %d, %d, %d)", l, viewTop, r, b));
+        Log.d(TAG, String.format("onLayout: mMenuBarView:(%d, %d, %d, %d)", l, t, r, offset));
+        Log.d(TAG, String.format("onLayout: mMenuSelectorView:(%d, %d, %d, %d)", l, t+offset, r, offset2));
+        Log.d(TAG, String.format("onLayout: mCurrentView:(%d, %d, %d, %d)", l, viewTop, r, b));
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        int x = (int) event.getX();
-        int y = (int) event.getY();
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_UP:
-                if (isTouchOnMenubarView(x, y)) {
-                    toggleMenuPress();
-                }
-                Log.d(TAG, String.format("onTouchEvent: MenubarLayout (%s, %s)", x, y));
-                break;
-        }
-        return true;
-    }
-
-    private boolean isTouchOnMenubarView(int x, int y) {
-        int l = mMenuBarView.getLeft();
-        int t = mMenuBarView.getTop();
-        int r = mMenuBarView.getRight();
-        int b = mMenuBarView.getBottom();
-        Rect rect = new Rect(l, t, r, b);
-        return rect.contains(x, y);
-    }
-
-    private void toggleMenuPress() {
+    /*package*/ void toggleMenuPress() {
         mMenuBarView.mActivate = !mMenuBarView.mActivate;
         mMenuSelectorView.mActivate = !mMenuSelectorView.mActivate;
-        invalidate(mMenuBarView.getLeft(), mMenuBarView.getTop(), mMenuSelectorView.getRight(), mMenuSelectorView.getBottom());
+        //invalidate(mMenuBarView.getLeft(), mMenuBarView.getTop(), mMenuSelectorView.getRight(), mMenuSelectorView.getBottom());
+        mMenuBarView.invalidate();
+        mMenuSelectorView.invalidate();
+    }
+
+    /*package*/ void changeCurrentView(int index) {
+        if (mCurrentViewIndex == index) return;
+        mCurrentViewIndex = index;
+        //invalidate(mMenuSelectorView.getLeft(), mMenuSelectorView.getBottom(), getRight(), getBottom());
+        invalidate();
     }
 
     private LayoutParams getLayoutParams(View view) {
@@ -216,6 +212,10 @@ public class MenubarLayout extends ViewGroup {
             TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.MenubarLayout);
             mName = a.getString(R.styleable.MenubarLayout_menu_name);
             a.recycle();
+
+            if (mName == null || mName.trim().length() == 0) {
+                throw new UnsupportedOperationException("'menu_name' param missing from XML for one of your included layouts");
+            }
         }
     }
 
