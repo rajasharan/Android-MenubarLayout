@@ -5,7 +5,7 @@ An android layout to easily add menubar style navigation
 ![](/screencast.gif)
 
 ## Layout Usage
-Add layout files using `<include>` tag and give it a `app:menu_name`
+Add your layout files using `<include>` tag and give it an `app:menu_name`. Each of them will be picked up by the `MenubarLayout` and shown in the menu selector.
 ([menubar_layout.xml](/demo/src/main/res/layout/menubar_layout.xml))
 ```xml
 
@@ -16,14 +16,20 @@ Add layout files using `<include>` tag and give it a `app:menu_name`
     android:layout_height="match_parent"
     >
 
-    <include layout="@layout/activity_main"
-        app:menu_name="First"
+    <include layout="@layout/profile"
+        app:menu_name="Profile"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
 
-    <include layout="@layout/single_image"
-        app:menu_name="Image"
+    <include layout="@layout/address"
+        app:menu_name="Address"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
+
+    <include layout="@layout/office"
+        app:menu_name="Workplace"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
