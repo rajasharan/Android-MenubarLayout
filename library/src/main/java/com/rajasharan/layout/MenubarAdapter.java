@@ -31,6 +31,7 @@ import java.util.List;
         mLayoutParams = new MarginLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         mLayoutParams.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, spacing,
                 root.getContext().getResources().getDisplayMetrics());
+        mLayoutParams.leftMargin = mLayoutParams.rightMargin;
         mRoot = root;
     }
 
@@ -68,10 +69,10 @@ import java.util.List;
         }
 
         if(flag) {
-            mRoot.changeCurrentView(i);
+            mRoot.changeCurrentView(i, text);
         }
 
-        Log.d(TAG, String.format("[%s] clicked: (i, flag)=(%s, %s)", text, i, flag));
+        //Log.d(TAG, String.format("[%s] clicked: (i, flag)=(%s, %s)", text, i, flag));
     }
 
     static class MenuHolder extends RecyclerView.ViewHolder {

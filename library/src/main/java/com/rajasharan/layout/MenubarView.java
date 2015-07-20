@@ -9,26 +9,26 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 
 /**
  * Created by rajasharan on 7/8/15.
  */
 /*package*/ class MenubarView extends View {
     private static final String TAG = "MenubarView";
+
     private TextPaint mTextpaint;
     private Paint mPaint;
     private Paint mBackgroundPaint;
 
+    /*package*/ String mTitle;
     /*package*/ boolean mActivate;
-    /*package*/ String mAltText;
 
-    public MenubarView(Context context, boolean activate, String logoText) {
+    public MenubarView(Context context, boolean activate, String title) {
         super(context);
-        init(context, activate, logoText);
+        init(context, activate, title);
     }
 
-    private void init(Context context, boolean activate, String logoText) {
+    private void init(Context context, boolean activate, String title) {
         mTextpaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         mTextpaint.setARGB(255, 255, 255, 255);
         mTextpaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 14,
@@ -44,7 +44,7 @@ import android.view.ViewGroup;
         mBackgroundPaint.setColor(Color.argb(160, 0, 0, 0));
 
         mActivate = activate;
-        mAltText = logoText;
+        mTitle = title;
     }
 
     @Override
@@ -62,7 +62,7 @@ import android.view.ViewGroup;
         }
         drawLogoText(canvas);
 
-        Log.d(TAG, String.format("MenubarView: (%d, %d) - (%d, %d)", l, t, r, b));
+        //Log.d(TAG, String.format("MenubarView: (%d, %d) - (%d, %d)", l, t, r, b));
     }
 
     private void drawLogoText(Canvas canvas) {
@@ -72,7 +72,7 @@ import android.view.ViewGroup;
         int h = getHeight();
         float startX = l + w/2;
         float startY = t + h/2 + h/4;
-        canvas.drawText(mAltText, startX, startY, mTextpaint);
+        canvas.drawText(mTitle, startX, startY, mTextpaint);
     }
 
     private void drawSandwichIcon(Canvas canvas) {
@@ -95,10 +95,10 @@ import android.view.ViewGroup;
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        Log.d(TAG, "mMenubarView onTouchEvent");
+        //Log.d(TAG, "mMenubarView onTouchEvent");
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             MenubarLayout parent = (MenubarLayout) getParent();
-            parent.toggleMenuPress();
+            parent.toggleMenubar();
         }
         return true;
     }

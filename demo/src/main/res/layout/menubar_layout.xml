@@ -6,14 +6,20 @@
     android:layout_height="match_parent"
     >
 
-    <include layout="@layout/activity_main"
-        app:menu_name="First"
+    <include layout="@layout/profile"
+        app:menu_name="Profile"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
 
-    <include layout="@layout/single_image"
-        app:menu_name="Image"
+    <include layout="@layout/address"
+        app:menu_name="Address"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
+
+    <include layout="@layout/office"
+        app:menu_name="Workplace"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />

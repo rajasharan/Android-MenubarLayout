@@ -54,15 +54,11 @@ public class MenubarLayout extends ViewGroup {
             mMenuNames.add(lp.mName);
         }
 
-        for (int i=1; i<100; i++) {
-            mMenuNames.add("Item - " + i);
-        }
-
         saveAndRemoveAllViews();
 
-        mMenuBarView = new MenubarView(getContext(), false, "MAIN LOgO HERE");
+        mMenuBarView = new MenubarView(getContext(), false, "DEFAULT TITLE");
         mMenuSelectorView = new MenuSelectorView(getContext(), false);
-        mMenuSelectorView.setAdapter(new MenubarAdapter(mMenuNames, 5, this));
+        mMenuSelectorView.setAdapter(new MenubarAdapter(mMenuNames, 10, this));
         mMenuSelectorView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
 
         addView(mMenuBarView, 0);
@@ -152,7 +148,7 @@ public class MenubarLayout extends ViewGroup {
         //Log.d(TAG, String.format("onLayout: mCurrentView:(%d, %d, %d, %d)", l, viewTop, r, b));
     }
 
-    /*package*/ void toggleMenuPress() {
+    /*package*/ void toggleMenubar() {
         mMenuBarView.mActivate = !mMenuBarView.mActivate;
         mMenuSelectorView.mActivate = !mMenuSelectorView.mActivate;
         //invalidate(mMenuBarView.getLeft(), mMenuBarView.getTop(), mMenuSelectorView.getRight(), mMenuSelectorView.getBottom());
@@ -160,12 +156,14 @@ public class MenubarLayout extends ViewGroup {
         mMenuSelectorView.invalidate();
     }
 
-    /*package*/ void changeCurrentView(int index) {
+    /*package*/ void changeCurrentView(int index, String newTitle) {
         View newView = mChildren.get(index);
         View currView = getChildAt(CURRENT_CHILD_INDEX);
         if (newView == currView) {
             return;
         }
+        mMenuBarView.mTitle = newTitle.toUpperCase();
+        toggleMenubar();
 
         if (currView != null) {
             removeViewAt(CURRENT_CHILD_INDEX);
