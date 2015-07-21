@@ -125,6 +125,10 @@ import android.view.View;
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         //Log.d(TAG, "mMenubarView onTouchEvent");
+        if (!isTouchOnMenuIcon(event)) {
+            return false;
+        }
+
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             MenubarLayout parent = (MenubarLayout) getParent();
             parent.toggleMenubar();
@@ -137,6 +141,16 @@ import android.view.View;
         }
         return true;
     }
+
+    private boolean isTouchOnMenuIcon(MotionEvent event) {
+        int l = getLeft();
+        int t = getTop();
+        int r = l + getHeight() + getHeight()/3;
+        int b = t + getHeight() + getHeight()/3;
+        float x = event.getX();
+        float y = event.getY();
+        if (x < l || x > r || y < t || y > b) {
+            return false;
         }
         return true;
     }
