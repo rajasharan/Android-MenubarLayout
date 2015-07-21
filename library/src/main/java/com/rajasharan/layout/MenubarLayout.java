@@ -1,5 +1,8 @@
 package com.rajasharan.layout;
 
+import android.animation.LayoutTransition;
+import android.animation.ObjectAnimator;
+import android.animation.PropertyValuesHolder;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -7,6 +10,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,13 +20,20 @@ import java.util.List;
  */
 public class MenubarLayout extends ViewGroup {
     private static final String TAG = "MenubarLayout";
-    private static final int CURRENT_CHILD_INDEX = 2;
 
     private MenubarView mMenuBarView;
     private MenuSelectorView mMenuSelectorView;
     private int mHeightDivideBy;
     private List<String> mMenuNames;
-    private List<View> mChildren;
+    private List<View> mUserLayouts;
+    private View mCurrentUserLayout;
+    private LayoutTransition mTransition;
+    private ObjectAnimator mSlideDown;
+    private ObjectAnimator mSlideUp;
+    private PropertyValuesHolder mTranslationYDown;
+    private PropertyValuesHolder mTranslationYUp;
+    private PropertyValuesHolder mAlphaDown;
+    private PropertyValuesHolder mAlphaUp;
 
     public MenubarLayout(Context context) {
         this(context, null);
@@ -40,8 +51,34 @@ public class MenubarLayout extends ViewGroup {
     private void init(Context context) {
         mHeightDivideBy = 20;
         mMenuNames = new ArrayList<>();
-        mChildren = new ArrayList<>();
+        mUserLayouts = new ArrayList<>();
+        mCurrentUserLayout = null;
 
+        mTranslationYDown = PropertyValuesHolder.ofFloat("translationY", 0f, 1f);
+        mAlphaDown = PropertyValuesHolder.ofFloat("alpha", 0f, 1f);
+        mSlideDown = ObjectAnimator.ofPropertyValuesHolder(mMenuSelectorView, mTranslationYDown, mAlphaDown);
+
+        mTranslationYUp = PropertyValuesHolder.ofFloat("translationY", 1f, 0f);
+        mAlphaUp = PropertyValuesHolder.ofFloat("alpha", 1f, 0f);
+        mSlideUp = ObjectAnimator.ofPropertyValuesHolder(mMenuSelectorView, mTranslationYUp, mAlphaUp);
+
+        mTransition = new LayoutTransition();
+        mTransition.setAnimator(LayoutTransition.APPEARING, mSlideDown);
+        mTransition.setInterpolator(LayoutTransition.APPEARING, new DecelerateInterpolator(4f));
+        mTransition.setAnimator(LayoutTransition.DISAPPEARING, mSlideUp);
+        mTransition.setInterpolator(LayoutTransition.DISAPPEARING, new DecelerateInterpolator(4f));
+
+        mTransition.addTransitionListener(new LayoutTransition.TransitionListener() {
+            @Override
+            public void startTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
+                MenubarLayout.this.startViewTransition(view);
+            }
+
+            @Override
+            public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
+                MenubarLayout.this.endViewTransition(view);
+            }
+        });
     }
 
     @Override
@@ -57,33 +94,33 @@ public class MenubarLayout extends ViewGroup {
         saveAndRemoveAllViews();
 
         mMenuBarView = new MenubarView(getContext(), false, "DEFAULT TITLE");
-        mMenuSelectorView = new MenuSelectorView(getContext(), false);
+        mMenuSelectorView = new MenuSelectorView(getContext());
         mMenuSelectorView.setAdapter(new MenubarAdapter(mMenuNames, 10, this));
         mMenuSelectorView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
 
-        addView(mMenuBarView, 0);
-        addView(mMenuSelectorView, 1);
-        //addView(mChildren.get(0), CURRENT_CHILD_INDEX);
+        addView(mMenuBarView);
 
         //Log.d(TAG, "onFininshInflate");
     }
 
     private void saveAndRemoveAllViews() {
-        mChildren.clear();
+        mUserLayouts.clear();
         for (int i=0; i<getChildCount(); i++) {
-            mChildren.add(getChildAt(i));
+            mUserLayouts.add(getChildAt(i));
         }
         removeAllViews();
     }
 
     private boolean measureCurrentView(int widthSpec, int heightSpec) {
-        View view = getChildAt(CURRENT_CHILD_INDEX);
-        LayoutParams lp = getLayoutParams(view);
+        if (mCurrentUserLayout == null) {
+            return false;
+        }
+        LayoutParams lp = getLayoutParams(mCurrentUserLayout);
         if (lp == null || lp.mName == null) {
             return false;
         }
 
-        view.measure(widthSpec, heightSpec);
+        mCurrentUserLayout.measure(widthSpec, heightSpec);
         return true;
     }
 
@@ -115,13 +152,15 @@ public class MenubarLayout extends ViewGroup {
     }
 
     private boolean layoutCurrentView(int l, int t, int r, int b) {
-        View view = getChildAt(CURRENT_CHILD_INDEX);
-        LayoutParams lp = getLayoutParams(view);
+        if (mCurrentUserLayout == null) {
+            return false;
+        }
+        LayoutParams lp = getLayoutParams(mCurrentUserLayout);
         if (lp == null || lp.mName == null) {
             return false;
         }
 
-        view.layout(l, t, r, b);
+        mCurrentUserLayout.layout(l, t, r, b);
         return true;
     }
 
@@ -148,27 +187,39 @@ public class MenubarLayout extends ViewGroup {
         //Log.d(TAG, String.format("onLayout: mCurrentView:(%d, %d, %d, %d)", l, viewTop, r, b));
     }
 
+    private void animateMenuSelectorView() {
+        float h = 2 * mMenuSelectorView.getHeight();
+        mTranslationYDown.setFloatValues(-h, 0f);
+        mTranslationYUp.setFloatValues(0f, -h);
+
+        setLayoutTransition(mTransition);
+        if (mMenuBarView.mActivate) {
+            addView(mMenuSelectorView);
+        } else {
+            removeView(mMenuSelectorView);
+        }
+        setLayoutTransition(null);
+    }
+
     /*package*/ void toggleMenubar() {
         mMenuBarView.mActivate = !mMenuBarView.mActivate;
-        mMenuSelectorView.mActivate = !mMenuSelectorView.mActivate;
-        //invalidate(mMenuBarView.getLeft(), mMenuBarView.getTop(), mMenuSelectorView.getRight(), mMenuSelectorView.getBottom());
         mMenuBarView.invalidate();
-        mMenuSelectorView.invalidate();
+        animateMenuSelectorView();
     }
 
     /*package*/ void changeCurrentView(int index, String newTitle) {
-        View newView = mChildren.get(index);
-        View currView = getChildAt(CURRENT_CHILD_INDEX);
-        if (newView == currView) {
+        View newView = mUserLayouts.get(index);
+        if (newView == mCurrentUserLayout) {
             return;
         }
         mMenuBarView.mTitle = newTitle.toUpperCase();
         toggleMenubar();
 
-        if (currView != null) {
-            removeViewAt(CURRENT_CHILD_INDEX);
+        if (mCurrentUserLayout != null) {
+            removeView(mCurrentUserLayout);
         }
-        addView(newView, CURRENT_CHILD_INDEX);
+        addView(newView);
+        mCurrentUserLayout = newView;
     }
 
     private LayoutParams getLayoutParams(View view) {

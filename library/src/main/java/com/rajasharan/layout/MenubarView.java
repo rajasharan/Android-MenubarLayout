@@ -50,7 +50,6 @@ import android.view.View;
         mTitle = title;
 
         mAnimator = ObjectAnimator.ofFloat(this, "angle", 0f, 45f);
-        //mAnimator.setDuration(4000);
     }
 
     private void setAngle(float deg) {
@@ -101,7 +100,7 @@ import android.view.View;
 
         canvas.save();
         canvas.rotate(mDegrees, start, start);
-        canvas.translate(0f, -h / 4);
+        canvas.translate(0f, -h/4);
         canvas.drawLine(start, start, h, start, mPaint);
         canvas.restore();
 
