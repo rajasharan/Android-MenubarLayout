@@ -1,5 +1,6 @@
 package com.rajasharan.layout;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -19,6 +20,8 @@ import android.view.View;
     private TextPaint mTextpaint;
     private Paint mPaint;
     private Paint mBackgroundPaint;
+    private ObjectAnimator mAnimator;
+    private float mDegrees;
 
     /*package*/ String mTitle;
     /*package*/ boolean mActivate;
@@ -45,6 +48,18 @@ import android.view.View;
 
         mActivate = activate;
         mTitle = title;
+
+        mAnimator = ObjectAnimator.ofFloat(this, "angle", 0f, 45f);
+        //mAnimator.setDuration(4000);
+    }
+
+    private void setAngle(float deg) {
+        mDegrees = deg;
+        int l = getLeft();
+        int t = getTop();
+        int r = l + getHeight() + getHeight()/3;
+        int b = t + getHeight() + getHeight()/3;
+        invalidate(l, t, r, b);
     }
 
     @Override
@@ -55,14 +70,8 @@ import android.view.View;
         int b = getBottom();
 
         canvas.drawRect(l, t, r, b, mBackgroundPaint);
-        if(mActivate) {
-            drawCrossIcon(canvas);
-        } else {
-            drawBurgerIcon(canvas);
-        }
+        drawAnimatedIcon(canvas);
         drawTitle(canvas);
-
-        //Log.d(TAG, String.format("MenubarView: (%d, %d) - (%d, %d)", l, t, r, b));
     }
 
     private void drawTitle(Canvas canvas) {
@@ -75,22 +84,42 @@ import android.view.View;
         canvas.drawText(mTitle, startX, startY, mTextpaint);
     }
 
+    private void drawAnimatedIcon(Canvas canvas) {
+        if (mActivate) {
+            morphToCross(canvas);
+        }
+        else {
+            drawBurgerIcon(canvas);
+        }
+    }
+
+    private void morphToCross(Canvas canvas) {
+        int h = getHeight();
+        float half = h/2;
+        float start = h/3;
+        float stop = half;
+
+        canvas.save();
+        canvas.rotate(mDegrees, start, start);
+        canvas.translate(0f, -h / 4);
+        canvas.drawLine(start, start, h, start, mPaint);
+        canvas.restore();
+
+        canvas.save();
+        canvas.rotate(-mDegrees, start, stop);
+        canvas.translate(0f, h/4);
+        canvas.drawLine(start, stop, h, stop, mPaint);
+        canvas.restore();
+    }
+
     private void drawBurgerIcon(Canvas canvas) {
         int h = getHeight();
         float half = h/2;
         float start = h/3;
         float stop = half;
+
         canvas.drawLine(start, start, h, start, mPaint);
         canvas.drawLine(start, stop, h, stop, mPaint);
-    }
-
-    private void drawCrossIcon(Canvas canvas) {
-        int h = getHeight();
-        int start = h/4;
-        h = h - start;
-        int stop = h;
-        canvas.drawLine(start, start, stop, stop, mPaint);
-        canvas.drawLine(start, stop, stop, start, mPaint);
     }
 
     @Override
@@ -99,6 +128,15 @@ import android.view.View;
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             MenubarLayout parent = (MenubarLayout) getParent();
             parent.toggleMenubar();
+            if (!mAnimator.isRunning() && !mAnimator.isStarted()) {
+                mAnimator.start();
+            } else {
+                mAnimator.end();
+                mAnimator.start();
+            }
+        }
+        return true;
+    }
         }
         return true;
     }
