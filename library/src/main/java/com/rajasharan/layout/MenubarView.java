@@ -58,14 +58,14 @@ import android.view.View;
         if(mActivate) {
             drawCrossIcon(canvas);
         } else {
-            drawSandwichIcon(canvas);
+            drawBurgerIcon(canvas);
         }
-        drawLogoText(canvas);
+        drawTitle(canvas);
 
         //Log.d(TAG, String.format("MenubarView: (%d, %d) - (%d, %d)", l, t, r, b));
     }
 
-    private void drawLogoText(Canvas canvas) {
+    private void drawTitle(Canvas canvas) {
         int l = getLeft();
         int w = getWidth();
         int t = getTop();
@@ -75,7 +75,7 @@ import android.view.View;
         canvas.drawText(mTitle, startX, startY, mTextpaint);
     }
 
-    private void drawSandwichIcon(Canvas canvas) {
+    private void drawBurgerIcon(Canvas canvas) {
         int h = getHeight();
         float half = h/2;
         float start = h/3;
@@ -88,7 +88,7 @@ import android.view.View;
         int h = getHeight();
         int start = h/4;
         h = h - start;
-        int stop = start + h;
+        int stop = h;
         canvas.drawLine(start, start, stop, stop, mPaint);
         canvas.drawLine(start, stop, stop, start, mPaint);
     }
