@@ -8,9 +8,12 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.support.v7.widget.LinearLayoutManager;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,13 +30,26 @@ public class MenubarLayout extends ViewGroup {
     private List<String> mMenuNames;
     private List<View> mUserLayouts;
     private View mCurrentUserLayout;
-    private LayoutTransition mTransition;
+    private int mCurrentUserIndex;
+    private LayoutTransition mMenuSelectorTransition;
+    private LayoutTransition mUserLayoutDisappearing;
+    private LayoutTransition mUserLayoutAppearing;
     private ObjectAnimator mSlideDown;
     private ObjectAnimator mSlideUp;
+    private ObjectAnimator mSlideRightDisappearing;
+    private ObjectAnimator mSlideRightAppearing;
+    private ObjectAnimator mSlideLeftDisappearing;
+    private ObjectAnimator mSlideLeftAppearing;
     private PropertyValuesHolder mTranslationYDown;
     private PropertyValuesHolder mTranslationYUp;
+    private PropertyValuesHolder mTranslationXRightDisappearing;
+    private PropertyValuesHolder mTranslationXRightAppearing;
+    private PropertyValuesHolder mTranslationXLeftDisappearing;
+    private PropertyValuesHolder mTranslationXLeftAppearing;
     private PropertyValuesHolder mAlphaDown;
     private PropertyValuesHolder mAlphaUp;
+    private Interpolator mDeccelerate;
+    private Interpolator mAccelerate;
 
     public MenubarLayout(Context context) {
         this(context, null);
@@ -53,6 +69,7 @@ public class MenubarLayout extends ViewGroup {
         mMenuNames = new ArrayList<>();
         mUserLayouts = new ArrayList<>();
         mCurrentUserLayout = null;
+        mCurrentUserIndex = -1;
 
         mTranslationYDown = PropertyValuesHolder.ofFloat("translationY", 0f, 1f);
         mAlphaDown = PropertyValuesHolder.ofFloat("alpha", 0f, 1f);
@@ -62,23 +79,49 @@ public class MenubarLayout extends ViewGroup {
         mAlphaUp = PropertyValuesHolder.ofFloat("alpha", 1f, 0f);
         mSlideUp = ObjectAnimator.ofPropertyValuesHolder(mMenuSelectorView, mTranslationYUp, mAlphaUp);
 
-        mTransition = new LayoutTransition();
-        mTransition.setAnimator(LayoutTransition.APPEARING, mSlideDown);
-        mTransition.setInterpolator(LayoutTransition.APPEARING, new DecelerateInterpolator(4f));
-        mTransition.setAnimator(LayoutTransition.DISAPPEARING, mSlideUp);
-        mTransition.setInterpolator(LayoutTransition.DISAPPEARING, new DecelerateInterpolator(4f));
+        mTranslationXRightDisappearing = PropertyValuesHolder.ofFloat("translationX", 0f, 1f);
+        mTranslationXRightAppearing = PropertyValuesHolder.ofFloat("translationX", 0f, 1f);
+        mSlideRightDisappearing = ObjectAnimator.ofPropertyValuesHolder(mCurrentUserLayout, mTranslationXRightDisappearing, mAlphaUp);
+        mSlideRightAppearing = ObjectAnimator.ofPropertyValuesHolder(mCurrentUserLayout, mTranslationXRightAppearing, mAlphaDown);
 
-        mTransition.addTransitionListener(new LayoutTransition.TransitionListener() {
+        mTranslationXLeftDisappearing = PropertyValuesHolder.ofFloat("translationX", 1f, 0f);
+        mTranslationXLeftAppearing = PropertyValuesHolder.ofFloat("translationX", 1f, 0f);
+        mSlideLeftDisappearing = ObjectAnimator.ofPropertyValuesHolder(mCurrentUserLayout, mTranslationXLeftDisappearing, mAlphaUp);
+        mSlideLeftAppearing = ObjectAnimator.ofPropertyValuesHolder(mCurrentUserLayout, mTranslationXLeftAppearing, mAlphaDown);
+
+        LayoutTransition.TransitionListener listener = new LayoutTransition.TransitionListener() {
             @Override
             public void startTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-                MenubarLayout.this.startViewTransition(view);
+                //Log.d(TAG, view.toString());
+                //Log.d(TAG, container.toString());
+                //Log.d(TAG, transition.getAnimator(transitionType).toString());
+                if (transitionType == LayoutTransition.DISAPPEARING) {
+                    startViewTransition(view);
+                }
             }
-
             @Override
             public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-                MenubarLayout.this.endViewTransition(view);
+                if (transitionType == LayoutTransition.DISAPPEARING) {
+                    endViewTransition(view);
+                }
             }
-        });
+        };
+        mDeccelerate = new DecelerateInterpolator(4f);
+        mAccelerate = new AccelerateInterpolator(4f);
+
+        mMenuSelectorTransition = new LayoutTransition();
+        mMenuSelectorTransition.setAnimator(LayoutTransition.APPEARING, mSlideDown);
+        mMenuSelectorTransition.setInterpolator(LayoutTransition.APPEARING, mDeccelerate);
+        mMenuSelectorTransition.setAnimator(LayoutTransition.DISAPPEARING, mSlideUp);
+        mMenuSelectorTransition.setInterpolator(LayoutTransition.DISAPPEARING, mDeccelerate);
+        //mMenuSelectorTransition.setDuration(3000);
+
+        mUserLayoutDisappearing = new LayoutTransition();
+        mUserLayoutAppearing = new LayoutTransition();
+
+        mMenuSelectorTransition.addTransitionListener(listener);
+        mUserLayoutDisappearing.addTransitionListener(listener);
+        mUserLayoutAppearing.addTransitionListener(listener);
     }
 
     @Override
@@ -188,11 +231,11 @@ public class MenubarLayout extends ViewGroup {
     }
 
     private void animateMenuSelectorView() {
-        float h = 2 * mMenuSelectorView.getHeight();
+        float h = mMenuSelectorView.getHeight();
         mTranslationYDown.setFloatValues(-h, 0f);
         mTranslationYUp.setFloatValues(0f, -h);
 
-        setLayoutTransition(mTransition);
+        setLayoutTransition(mMenuSelectorTransition);
         if (mMenuBarView.mActivate) {
             addView(mMenuSelectorView);
         } else {
@@ -212,14 +255,59 @@ public class MenubarLayout extends ViewGroup {
         if (newView == mCurrentUserLayout) {
             return;
         }
-        mMenuBarView.mTitle = newTitle.toUpperCase();
-        toggleMenubar();
 
-        if (mCurrentUserLayout != null) {
-            removeView(mCurrentUserLayout);
+        mMenuBarView.mTitle = newTitle.toUpperCase();
+        mMenuBarView.invalidate();
+        //toggleMenubar();
+
+        boolean clockwise;
+        if (mCurrentUserIndex > index) {
+            clockwise = true;
+        } else {
+            clockwise = false;
         }
-        addView(newView);
+        animateCurrentUserLayout(newView, clockwise);
+        mCurrentUserIndex = index;
         mCurrentUserLayout = newView;
+    }
+
+    private void animateCurrentUserLayout(View newView, boolean clockwise) {
+        float w = getWidth();
+        mTranslationXRightDisappearing.setFloatValues(0, w);
+        mTranslationXRightAppearing.setFloatValues(-w, 0);
+
+        mTranslationXLeftDisappearing.setFloatValues(0, -w);
+        mTranslationXLeftAppearing.setFloatValues(w, 0);
+
+        if (clockwise) {
+            if (mCurrentUserLayout != null) {
+                mUserLayoutDisappearing.setAnimator(LayoutTransition.DISAPPEARING, mSlideRightDisappearing);
+                mUserLayoutDisappearing.setInterpolator(LayoutTransition.DISAPPEARING, mDeccelerate);
+                setLayoutTransition(mUserLayoutDisappearing);
+                removeView(mCurrentUserLayout);
+            }
+
+            mUserLayoutAppearing.setAnimator(LayoutTransition.APPEARING, mSlideRightAppearing);
+            mUserLayoutAppearing.setInterpolator(LayoutTransition.APPEARING, mAccelerate);
+            setLayoutTransition(mUserLayoutAppearing);
+            addView(newView);
+            setLayoutTransition(null);
+        }
+        else {
+            if (mCurrentUserLayout != null) {
+                mUserLayoutDisappearing.setAnimator(LayoutTransition.DISAPPEARING, mSlideLeftDisappearing);
+                mUserLayoutDisappearing.setInterpolator(LayoutTransition.DISAPPEARING, mDeccelerate);
+                setLayoutTransition(mUserLayoutDisappearing);
+                removeView(mCurrentUserLayout);
+                setLayoutTransition(null);
+            }
+
+            mUserLayoutAppearing.setAnimator(LayoutTransition.APPEARING, mSlideLeftAppearing);
+            mUserLayoutAppearing.setInterpolator(LayoutTransition.APPEARING, mAccelerate);
+            setLayoutTransition(mUserLayoutAppearing);
+            addView(newView);
+            setLayoutTransition(null);
+        }
     }
 
     private LayoutParams getLayoutParams(View view) {

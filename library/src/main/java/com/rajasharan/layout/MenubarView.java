@@ -50,6 +50,7 @@ import android.view.View;
         mTitle = title;
 
         mAnimator = ObjectAnimator.ofFloat(this, "angle", 0f, 45f);
+        //mAnimator.setDuration(4000);
     }
 
     private void setAngle(float deg) {
