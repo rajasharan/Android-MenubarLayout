@@ -14,6 +14,7 @@ Add your layout files using `<include>` tag and give it an `app:menu_name`. Each
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    app:menu_height="30dp"
     >
 
     <include layout="@layout/profile"

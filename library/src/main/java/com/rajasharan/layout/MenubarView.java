@@ -80,7 +80,7 @@ import android.view.View;
         int t = getTop();
         int h = getHeight();
         float startX = l + w/2;
-        float startY = t + h/2 + h/4;
+        float startY = t + h/2 + h/6;
         canvas.drawText(mTitle, startX, startY, mTextpaint);
     }
 

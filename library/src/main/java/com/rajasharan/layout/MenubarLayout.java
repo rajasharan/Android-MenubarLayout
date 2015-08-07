@@ -9,6 +9,7 @@ import android.graphics.Canvas;
 import android.support.v7.widget.LinearLayoutManager;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
@@ -26,7 +27,8 @@ public class MenubarLayout extends ViewGroup {
 
     private MenubarView mMenuBarView;
     private MenuSelectorView mMenuSelectorView;
-    private int mHeightDivideBy;
+    private CenterLinearLayoutManager mCenterLayoutManager;
+    private int mMenuHeight;
     private List<String> mMenuNames;
     private List<View> mUserLayouts;
     private View mCurrentUserLayout;
@@ -61,11 +63,19 @@ public class MenubarLayout extends ViewGroup {
 
     public MenubarLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context);
+
+        init(context, attrs);
     }
 
-    private void init(Context context) {
-        mHeightDivideBy = 20;
+    private void init(Context context, AttributeSet attrs) {
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.MenubarLayout);
+        mMenuHeight = a.getDimensionPixelSize(R.styleable.MenubarLayout_menu_height, -1);
+        a.recycle();
+
+        if (mMenuHeight == -1) {
+            mMenuHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 20, context.getResources().getDisplayMetrics());
+        }
+
         mMenuNames = new ArrayList<>();
         mUserLayouts = new ArrayList<>();
         mCurrentUserLayout = null;
@@ -137,9 +147,12 @@ public class MenubarLayout extends ViewGroup {
         saveAndRemoveAllViews();
 
         mMenuBarView = new MenubarView(getContext(), false, "DEFAULT TITLE");
+
         mMenuSelectorView = new MenuSelectorView(getContext());
         mMenuSelectorView.setAdapter(new MenubarAdapter(mMenuNames, 10, this));
-        mMenuSelectorView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+
+        mCenterLayoutManager = new CenterLinearLayoutManager(getContext());
+        mMenuSelectorView.setLayoutManager(mCenterLayoutManager);
 
         addView(mMenuBarView);
 
@@ -180,12 +193,13 @@ public class MenubarLayout extends ViewGroup {
         setMeasuredDimension(widthSpec, heightSpec);
 
         int menuWidthSpec = widthSpec;
-        int menuHeightSpec = MeasureSpec.makeMeasureSpec(height/mHeightDivideBy, MeasureSpec.EXACTLY);
+        int menuHeightSpec = MeasureSpec.makeMeasureSpec(mMenuHeight, MeasureSpec.EXACTLY);
         mMenuBarView.measure(menuWidthSpec, menuHeightSpec);
         mMenuSelectorView.measure(menuWidthSpec, menuHeightSpec);
+        mCenterLayoutManager.setMenubarHeight(mMenuHeight);
 
         int viewWidthSpec = widthSpec;
-        int viewHeightSpec = MeasureSpec.makeMeasureSpec(height - height/mHeightDivideBy, MeasureSpec.EXACTLY);
+        int viewHeightSpec = MeasureSpec.makeMeasureSpec(height - mMenuHeight, MeasureSpec.EXACTLY);
 
         measureCurrentView(viewWidthSpec, viewHeightSpec);
 
@@ -216,7 +230,7 @@ public class MenubarLayout extends ViewGroup {
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        int offset = b/mHeightDivideBy;
+        int offset = mMenuHeight;
         int offset2 = offset * 2;
         int viewTop = t + offset2;
 
